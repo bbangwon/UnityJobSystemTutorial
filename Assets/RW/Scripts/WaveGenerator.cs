@@ -76,7 +76,7 @@ public class WaveGenerator : MonoBehaviour
     }
 
     private void OnDestroy()
-    {
+    {        
         //영구할당자를 사용하고 있으므로, OnDestroy에서 Dispose를 호출하여 메모리를 해제해준다.
         waterVertices.Dispose();
         waterNormals.Dispose();
