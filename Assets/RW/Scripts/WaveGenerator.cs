@@ -55,6 +55,7 @@ public class WaveGenerator : MonoBehaviour
     NativeArray<Vector3> waterVertices;
     NativeArray<Vector3> waterNormals;
 
+    [BurstCompile]
     struct UpdateMeshJob : IJobParallelFor
     {
         public NativeArray<Vector3> vertices;
