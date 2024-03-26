@@ -32,20 +32,37 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using Unity.Collections;
+using UnityEngine.Jobs;
+using Unity.Burst;
+using Unity.Jobs;
+using Unity.Mathematics;
+
 public class WaveGenerator : MonoBehaviour
 {
     [Header("Wave Parameters")]
-    public float waveScale;
-    public float waveOffsetSpeed;
-    public float waveHeight;
+    public float waveScale; //Perlin 노이즈 크기
+    public float waveOffsetSpeed;   //Perlin 노이즈 이동속도
+    public float waveHeight;    //Perlin 노이즈 높이
 
     [Header("References and Prefabs")]
     public MeshFilter waterMeshFilter;
     private Mesh waterMesh;
 
+    //잡 시스템에 구현된 안전 시스템과 함께 작동하는 NativeArray를 사용한다.
+    //스레드의 안전을 보장하기 위해 읽고 쓴 내용을 추적함
+    //프로세스가 병렬로 진행되기 때문에 중요함
+    NativeArray<Vector3> waterVertices;
+    NativeArray<Vector3> waterNormals;
+
     private void Start()
     {
-        
+        waterMesh = waterMeshFilter.mesh;
+        waterMesh.MarkDynamic();
+
+        //Allocator.Persistent : 할당은 느리지만, 프로그램 전체 수명동안 지속됨
+        waterVertices = new NativeArray<Vector3>(waterMesh.vertices, Allocator.Persistent);
+        waterNormals = new NativeArray<Vector3>(waterMesh.normals, Allocator.Persistent);
     }
 
     private void Update()
@@ -60,6 +77,8 @@ public class WaveGenerator : MonoBehaviour
 
     private void OnDestroy()
     {
-        
+        //영구할당자를 사용하고 있으므로, OnDestroy에서 Dispose를 호출하여 메모리를 해제해준다.
+        waterVertices.Dispose();
+        waterNormals.Dispose();
     }
 }
