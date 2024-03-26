@@ -55,6 +55,43 @@ public class WaveGenerator : MonoBehaviour
     NativeArray<Vector3> waterVertices;
     NativeArray<Vector3> waterNormals;
 
+    struct UpdateMeshJob : IJobParallelFor
+    {
+        public NativeArray<Vector3> vertices;
+
+        [ReadOnly]
+        public NativeArray<Vector3> normals;
+
+        public float offsetSpeed;
+        public float scale;
+        public float height;
+
+        public float time;
+
+        public void Execute(int index)
+        {
+            //파도가 위쪽을 향한 정점에만 영향을 미치는지 확인합니다. 이것은 물의 바닥을 제외합니다.
+            if (normals[index].z > 0f)
+            {
+                //현재 정점에 대한 참조를 가져옵니다.
+                var vertex = vertices[index];
+
+                //스케일과 오프셋을 사용하여 노이즈 값을 계산합니다.
+                float offsetSpeedMultiplyTime = offsetSpeed * time;
+                float noiseValue = Noise(vertex.x * scale + offsetSpeedMultiplyTime, vertex.y * scale + offsetSpeedMultiplyTime);
+                
+                //노이즈 값을 사용하여 정점의 높이를 설정합니다.
+                vertices[index] = new Vector3(vertex.x, vertex.y, noiseValue * height + 0.3f);
+            }
+        }
+
+        private float Noise(float x, float y)
+        {
+            float2 pos = math.float2(x, y);
+            return noise.snoise(pos);
+        }
+    }
+
     private void Start()
     {
         waterMesh = waterMeshFilter.mesh;
