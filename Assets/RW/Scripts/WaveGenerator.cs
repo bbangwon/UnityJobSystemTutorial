@@ -92,6 +92,9 @@ public class WaveGenerator : MonoBehaviour
         }
     }
 
+    JobHandle meshModificationJobHandle;
+    UpdateMeshJob meshModificationJob;
+
     private void Start()
     {
         waterMesh = waterMeshFilter.mesh;
@@ -104,12 +107,29 @@ public class WaveGenerator : MonoBehaviour
 
     private void Update()
     {
-       
+        meshModificationJob = new UpdateMeshJob()
+        {
+            vertices = waterVertices,
+            normals = waterNormals,
+            offsetSpeed = waveOffsetSpeed,
+            time = Time.time,
+            scale = waveScale,
+            height = waveHeight
+        };
+
+        meshModificationJobHandle = meshModificationJob.Schedule(waterVertices.Length, 64);
     }
 
     private void LateUpdate()
     {
-      
+        //작업이 완료될 때까지 기다립니다.
+        meshModificationJobHandle.Complete();
+
+        //변경된 정점을 메시에 적용합니다.
+        waterMesh.SetVertices(meshModificationJob.vertices);
+
+        //메시의 노멀을 다시 계산합니다.
+        waterMesh.RecalculateNormals();
     }
 
     private void OnDestroy()

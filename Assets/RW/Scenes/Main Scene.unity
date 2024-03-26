@@ -376,10 +376,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 307715fb5205d6848a2e3dccdb7a41be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  waveScale: 0
-  waveOffsetSpeed: 0
-  waveHeight: 0
-  waterMeshFilter: {fileID: 0}
+  waveScale: 0.24
+  waveOffsetSpeed: 1.06
+  waveHeight: 0.16
+  waterMeshFilter: {fileID: 1907911149}
 --- !u!1 &1907911148
 GameObject:
   m_ObjectHideFlags: 0
