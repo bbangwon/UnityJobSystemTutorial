@@ -30,6 +30,7 @@
 
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Jobs;
 
@@ -120,6 +121,9 @@ public class FishGenerator : MonoBehaviour
     NativeArray<Vector3> velocities;
     TransformAccessArray transformAccessArray;
 
+    private PositionUpdateJob positionUpdateJob;
+    private JobHandle positionUpdateJobHandle;
+
     private void Start()
     {
         //속도 초기화
@@ -144,12 +148,27 @@ public class FishGenerator : MonoBehaviour
 
     private void Update()
     {
+        //Job 데이터 설정
+        positionUpdateJob = new PositionUpdateJob()
+        {
+            objectVelocities = velocities,
+            jobDeltaTime = Time.deltaTime,
+            swimSpeed = this.swimSpeed,
+            turnSpeed = this.turnSpeed,
+            time = Time.time,
+            swimChangeFrequency = swimChangeFrequency,
+            center = waterObject.position,
+            bounds = spawnBounds,
+            seed = System.DateTimeOffset.Now.Millisecond    //각 호출에 대해 다른 시드를 보장하기 위해 시스템 시간에서 현재 밀리초를 가져옴
+        };
 
+        positionUpdateJobHandle = positionUpdateJob.Schedule(transformAccessArray);
     }
 
     private void LateUpdate()
     {
-
+        //업데이트 주기로 이동하기 전에 Job이 완료됨
+        positionUpdateJobHandle.Complete();
     }
 
     private void OnDrawGizmos()
