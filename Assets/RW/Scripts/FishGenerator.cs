@@ -28,9 +28,9 @@
  * THE SOFTWARE.
  */
 
-using System.Collections;
-using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Jobs;
 
 public class FishGenerator : MonoBehaviour
 {
@@ -48,19 +48,39 @@ public class FishGenerator : MonoBehaviour
     public float swimSpeed;
     public float turnSpeed;
 
+    NativeArray<Vector3> velocities;
+    TransformAccessArray transformAccessArray;
+
     private void Start()
     {
-        
+        //속도 초기화
+        velocities = new NativeArray<Vector3>(amountOfFish, Allocator.Persistent);
+
+        transformAccessArray = new TransformAccessArray(amountOfFish);
+
+        for (int i = 0; i < amountOfFish; i++)
+        {
+            float distanceX = Random.Range(-spawnBounds.x / 2, spawnBounds.x / 2);
+            float distanceZ = Random.Range(-spawnBounds.z / 2, spawnBounds.z / 2);
+
+            Vector3 spawnPoint = (transform.position + Vector3.up * spawnHeight) + new Vector3(distanceX, 0, distanceZ);
+
+            //생성위치 내에 Fish 생성
+            Transform t = Instantiate(objectPrefab, spawnPoint, Quaternion.identity);
+            
+            //transformAccessArray에 Fish 추가
+            transformAccessArray.Add(t);
+        }
     }
 
     private void Update()
     {
-      
+
     }
 
     private void LateUpdate()
     {
-        
+
     }
 
     private void OnDrawGizmos()
@@ -71,6 +91,7 @@ public class FishGenerator : MonoBehaviour
 
     private void OnDestroy()
     {
-
+        transformAccessArray.Dispose();
+        velocities.Dispose();
     }
 }
