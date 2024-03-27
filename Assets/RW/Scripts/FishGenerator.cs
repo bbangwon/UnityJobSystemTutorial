@@ -28,12 +28,81 @@
  * THE SOFTWARE.
  */
 
+using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Jobs;
 
+using random = Unity.Mathematics.Random;
+
 public class FishGenerator : MonoBehaviour
 {
+    /// <summary>
+    /// Transform을 추적하기 위한 IJobParallelForTransform 구현
+    /// </summary>
+    [BurstCompile]
+    struct PositionUpdateJob : IJobParallelForTransform
+    {
+        public NativeArray<Vector3> objectVelocities;
+
+        public Vector3 bounds;
+        public Vector3 center;
+
+        public float jobDeltaTime;
+        public float time;
+        public float swimSpeed;
+        public float turnSpeed;
+        public int swimChangeFrequency;
+
+        public float seed;
+
+        public void Execute(int index, TransformAccess transform)
+        {
+            Vector3 currentVelocity = objectVelocities[index];
+
+            //Unity Math 라이브러리를 이용하여 인덱스와 시스템 시간을 사용하여 시드를 생성하는 의사난수 생성기를 만듦
+            random randomGen = new random((uint)(index * time + 1 + seed));
+
+            //localToWorldMatrix를 사용하여 로컬 정방향을 따라 변환
+            transform.position += transform.localToWorldMatrix.MultiplyVector(new Vector3(0, 0, 1)) * swimSpeed * jobDeltaTime * randomGen.NextFloat(0.3f, 1.0f);
+
+            if (currentVelocity != Vector3.zero)
+            {
+                //currentVelocity 방향으로 회전
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(currentVelocity), turnSpeed * jobDeltaTime);
+            }
+
+            Vector3 currentPosition = transform.position;
+            bool randomise = true;
+
+            ///경계를 벗어나면 속도가 중심을 향해 반전
+            if(currentPosition.x > center.x + bounds.x / 2 ||
+                currentPosition.x < center.x - bounds.x / 2 || 
+                currentPosition.z > center.z + bounds.z / 2 || 
+                currentPosition.z < center.z - bounds.z / 2)
+            {
+                Vector3 internalPosition = new Vector3(center.x + randomGen.NextFloat(-bounds.x / 2, bounds.x / 2)/1.3f, 0, 
+                                                        center.z + randomGen.NextFloat(-bounds.z / 2, bounds.z / 2)/1.3f);
+
+                currentVelocity = (internalPosition- currentPosition).normalized;
+                objectVelocities[index] = currentVelocity;
+
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(currentVelocity), turnSpeed * jobDeltaTime * 2);               
+
+                randomise = false;
+            }
+
+            //변환이 경계 내에 있는 경우 자연스러운 움직임을 제공하기 위해 방향이 바뀔 가능성이 적음
+            if(randomise)
+            {
+                if(randomGen.NextInt(0, swimChangeFrequency) <= 2)
+                {
+                    objectVelocities[index] = new Vector3(randomGen.NextFloat(-1, 1), 0, randomGen.NextFloat(-1, 1));
+                }
+            }
+        }
+    }
+
     [Header("References")]
     public Transform waterObject;
     public Transform objectPrefab;
